@@ -21,6 +21,7 @@ class Calculator(object):
     usersadd.admin=True
     session.add(usersadd)
     session.commit()
+    print("SuperUser created ")
 
 if __name__ == '__main__':
   fire.Fire(Calculator)

@@ -11,7 +11,7 @@ from dependencies import *
 try:
     SQLALCHEMY_DATABASE_URL=environ["API_DATABASE_URL"]     
 except:
-    SQLALCHEMY_DATABASE_URL = "sqlite:///db/fast.db"
+    SQLALCHEMY_DATABASE_URL = "sqlite:////app/db/fastauth.sqlite"
 #SQLALCHEMY_DATABASE_URL = "postgresql://user:password@postgresserver/db"
 
 
