@@ -69,6 +69,11 @@ SECRET_KEY="{openssl rand -hex 32}"
 API_DATABASE_URL="database url"
 
 ```
+## Docker Pull
+```bash
+docker pull shotofw/fastauth2
+
+```
 
 ## License
 
