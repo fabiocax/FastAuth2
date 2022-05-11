@@ -80,6 +80,10 @@ Create superuser
  docker run -p 5000:5000 -v /home/path/:/app/db -it shotofw/fastauth2  python cli.py createsuperuser admin senha
 
 ```
+## Api Docs
+
+http://127.0.0.1:5000/docs#/
+
 ## License
 
 This project is licensed under the terms of the MIT license.
