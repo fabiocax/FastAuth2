@@ -74,7 +74,12 @@ API_DATABASE_URL="database url"
 docker pull shotofw/fastauth2
 
 ```
+Create superuser
 
+```bash
+ docker run -p 5000:5000 -v /home/path/:/app/db -it shotofw/fastauth2  python cli.py createsuperuser admin senha
+
+```
 ## License
 
 This project is licensed under the terms of the MIT license.
