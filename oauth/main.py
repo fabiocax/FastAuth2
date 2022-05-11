@@ -21,7 +21,15 @@ Session = sessionmaker(bind=engine)
 
 def user_details(username):
 	session = Session()
-	return session.query(Users).filter(Users.username ==username,Users.disabled==False).one()
+	try:
+		ret=session.query(Users).filter(Users.username ==username,Users.disabled==False).one()
+	except:
+		raise HTTPException(
+			status_code=status.HTTP_401_UNAUTHORIZED,
+			detail="User disabled",
+			headers={"WWW-Authenticate": "Bearer"},
+		)
+	return ret
 
 oauth = APIRouter(
     prefix="/api/v2",
@@ -59,11 +67,12 @@ async def get_user_info(current_user: User = Depends(get_current_active_user)):
 
 @oauth.get("/adm/users/{username}", response_model=User)
 async def get_username_info(username: str,current_user: User = Depends(get_current_active_user)):
-	userd =user_details(username)
+	userd =user_details(current_user.username)
 	if userd.admin == True:
-		ret={"username":userd.username,
-			"email":userd.email,
-			"full_name":userd.full_name,
+		uuser=user_details(username)
+		ret={"username":uuser.username,
+			"email":uuser.email,
+			"full_name":uuser.full_name,
 			}
 	else:
 		raise HTTPException(
@@ -109,6 +118,23 @@ async def delete_user_info(current_user: User = Depends(get_current_active_user)
 	if userd.admin == True:
 		session = Session()
 		session.query(Users).filter(Users.username == username).delete()
+	else:
+		raise HTTPException(
+			status_code=status.HTTP_401_UNAUTHORIZED,
+			detail="Not authorized",
+			headers={"WWW-Authenticate": "Bearer"},
+		)
+	ret={"username":username}
+
+	return ret
+
+@oauth.put("/adm/users/", response_model=User)
+async def disabled_user_info(current_user: User = Depends(get_current_active_user),username: str = Form(...),disabled: bool = Form(...)):
+	userd =user_details(current_user.username)
+	if userd.admin == True:
+		session = Session()
+		session.query(Users).filter(Users.username == username).update({Users.disabled:disabled})
+		session.commit()
 	else:
 		raise HTTPException(
 			status_code=status.HTTP_401_UNAUTHORIZED,

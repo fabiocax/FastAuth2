@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from oauth import main as auth
 import uvicorn
-from cli import Calculator
+
 
 
 app = FastAPI()

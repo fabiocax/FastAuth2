@@ -10,6 +10,9 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from os import environ
 from sqlalchemy.orm import sessionmaker
+from secrets import token_bytes
+from base64 import b64encode
+
 
 app = FastAPI()
 
@@ -19,7 +22,7 @@ try:
     SECRET_KEY=environ["SECRET_KEY"]
 except:
 
-    SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"  ## openssl rand -hex 32
+    SECRET_KEY = b64encode(token_bytes(32)).decode() ## openssl rand -hex 32
 
 ALGORITHM = "HS256"
 
