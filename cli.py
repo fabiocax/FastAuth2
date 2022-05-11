@@ -9,8 +9,7 @@ from base64 import b64encode
 class Configurator(object):
     """."""
     def createsuperuser(self, username,password,email="",full_name=""):
-        Base.metadata.bind = engine
-        Base.metadata.create_all(engine)
+
 
         Session = sessionmaker(bind=engine)
         session = Session()

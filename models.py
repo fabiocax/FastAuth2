@@ -12,7 +12,7 @@ try:
     SQLALCHEMY_DATABASE_URL=environ["API_DATABASE_URL"]
          
 except:
-    SQLALCHEMY_DATABASE_URL = "sqlite:///"
+    SQLALCHEMY_DATABASE_URL = "sqlite:///sql_tmp.db"
 
 #print("INFO:     Select database: "+SQLALCHEMY_DATABASE_URL)
 
@@ -43,5 +43,6 @@ class Users(Base):
 #Criando usuario de teste
 
 
-
+Base.metadata.bind = engine
+Base.metadata.create_all(engine)
 
