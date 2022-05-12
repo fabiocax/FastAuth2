@@ -5,7 +5,7 @@
 </p>
 
 ---
-**Documentation**: <a href="https://fastauth2.herokuapp.com/redoc" target="_blank"https://fastauth2.herokuapp.com/redoc</a>
+**Documentation**: <a href="https://fastauth2.herokuapp.com/redoc" target="_blank"> https://fastauth2.herokuapp.com/redoc</a>
 ---
 
 <!-- ---
