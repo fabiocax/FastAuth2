@@ -5,10 +5,10 @@
 </p>
 
 
+
+
+**Documentation**: <a href="https://fastauth2.herokuapp.com/redoc" target="_blank"https://fastauth2.herokuapp.com/redoc</a>
 <!-- ---
-
-**Documentation**: <a href="https://fastapi-users.github.io/fastapi-users/" target="_blank">https://fastapi-users.github.io/fastapi-users/</a>
-
 **Source Code**: <a href="https://github.com/fastapi-users/fastapi-users" target="_blank">https://github.com/fastapi-users/fastapi-users</a>
 
 --- -->
