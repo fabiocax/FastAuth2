@@ -4,10 +4,10 @@
   <img src="https://raw.githubusercontent.com/fabiocax/FastAuth2/master/imgs/logo.png?sanitize=true" alt="FastAPI Users">
 </p>
 
-
-
-
+---
 **Documentation**: <a href="https://fastauth2.herokuapp.com/redoc" target="_blank"https://fastauth2.herokuapp.com/redoc</a>
+---
+
 <!-- ---
 **Source Code**: <a href="https://github.com/fastapi-users/fastapi-users" target="_blank">https://github.com/fastapi-users/fastapi-users</a>
 
