@@ -5,6 +5,7 @@ from dependencies import get_password_hash
 import fire
 from secrets import token_bytes
 from base64 import b64encode
+import pyotp 
 
 class Configurator(object):
     """."""
@@ -19,6 +20,7 @@ class Configurator(object):
         usersadd.email=email
         usersadd.full_name=full_name
         usersadd.admin=True
+        usersadd.otp_secret=pyotp.random_base32()
         session.add(usersadd)
         session.commit()
         print("SuperUser created ")

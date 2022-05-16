@@ -36,6 +36,8 @@ class Users(Base):
     token_timeout = Column(Integer, default=10)
     admin = Column(Boolean, default=False)
     disabled = Column(Boolean, default=False)
+    otp = Column(Boolean, default=True)
+    otp_secret= Column(String)
     def as_dict(self):
        return {c.key: getattr(self, c.key) for c in self.__table__.columns}
 

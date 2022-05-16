@@ -43,10 +43,12 @@ class User(BaseModel):
     username: str
     email: Optional[str] = None
     full_name: Optional[str] = None
+    otp_token: Optional[bool] = None
 
 
 class UserInDB(User):
     hashed_password: str
+    otp_secret: str
     
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
