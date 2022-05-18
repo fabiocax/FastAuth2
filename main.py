@@ -19,7 +19,7 @@ def custom_openapi():
         routes=app.routes,
     )
     openapi_schema["info"]["x-logo"] = {
-        "url": "https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png"
+        "url": "https://raw.githubusercontent.com/fabiocax/FastAuth2/master/imgs/logo.png?sanitize=true"
     }
     app.openapi_schema = openapi_schema
     return app.openapi_schema
