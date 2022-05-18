@@ -45,7 +45,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 	session = Session()
 	userdb=session.query(Users).filter(Users.username == form_data.username,Users.disabled==False).one()
 	users_db={form_data.username:userdb.as_dict()}
-	user = authenticate_user(users_db, form_data.username, form_data.password)
+	user = authenticate_user(users_db, form_data.username, form_data.password,form_data.client_secret)
 	if not user:
 		raise HTTPException(
 			status_code=status.HTTP_401_UNAUTHORIZED,
@@ -197,6 +197,6 @@ async def get_otp_qrcode(username: str,token: int,current_user: User = Depends(g
 			detail="Not authorized",
 			headers={"WWW-Authenticate": "Bearer"},
 		)
-	ret={"username":uuser.username,"otp_token":token_valid}
+	ret={"username":uuser.username,"otp_token":token_valid,'email':""}
 
 	return ret

@@ -12,7 +12,7 @@ from os import environ
 from sqlalchemy.orm import sessionmaker
 from secrets import token_bytes
 from base64 import b64encode
-
+import pyotp
 
 app = FastAPI()
 
@@ -41,6 +41,7 @@ class TokenData(BaseModel):
 
 class User(BaseModel):
     username: str
+    #email: str
     email: Optional[str] = None
     full_name: Optional[str] = None
     otp_token: Optional[bool] = None
@@ -49,6 +50,7 @@ class User(BaseModel):
 class UserInDB(User):
     hashed_password: str
     otp_secret: str
+    otp: bool
     
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
@@ -64,12 +66,20 @@ def get_user(db, username: str):
         return UserInDB(**user_dict)
 
 
-def authenticate_user(fake_db, username: str, password: str):
+def authenticate_user(fake_db, username: str, password: str,client_secret:str):
     user = get_user(fake_db, username)
     if not user:
         return False
     if not verify_password(password, user.hashed_password):
         return False
+    if user.otp ==True:
+        totp = pyotp.TOTP(user.otp_secret)
+        if not client_secret == totp.now():
+            return False
+            
+    
+    
+
     return user
 
 

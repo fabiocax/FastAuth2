@@ -9,7 +9,7 @@ import pyotp
 
 class Configurator(object):
     """."""
-    def createsuperuser(self, username,password,email="",full_name=""):
+    def createsuperuser(self, username,password,email="",full_name="",otp=False):
 
 
         Session = sessionmaker(bind=engine)
@@ -20,6 +20,7 @@ class Configurator(object):
         usersadd.email=email
         usersadd.full_name=full_name
         usersadd.admin=True
+        usersadd.otp=otp
         usersadd.otp_secret=pyotp.random_base32()
         session.add(usersadd)
         session.commit()
