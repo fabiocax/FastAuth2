@@ -86,7 +86,7 @@ async def get_username_info(username: str,current_user: User = Depends(get_curre
 	return ret
 
 @oauth.post("/adm/users/", response_model=User)
-async def add_users(current_user: User = Depends(get_current_active_user),username: str = Form(...),password: str = Form(...),email: str = Form(...),fullname: str = Form(...),token_timeout: int=15):
+async def add_users(current_user: User = Depends(get_current_active_user),username: str = Form(...),password: str = Form(...),email: str = Form(...),fullname: str = Form(...),token_timeout: int=15,otp_active: bool=False):
 	userd =user_details(current_user.username)
 	if userd.admin == True:
 		session = Session()
@@ -97,6 +97,7 @@ async def add_users(current_user: User = Depends(get_current_active_user),userna
 		usersadd.full_name=fullname
 		usersadd.admin=False
 		usersadd.token_timeout=token_timeout
+		usersadd.otp=otp_active
 		usersadd.otp_secret=pyotp.random_base32()
 		session.add(usersadd)
 		try:
@@ -156,7 +157,7 @@ async def get_otp_qrcode(username: str,current_user: User = Depends(get_current_
 	if userd.admin == True:
 		uuser=user_details(username)
 
-		uri = pyotp.totp.TOTP(uuser.otp_secret).provisioning_uri(name=uuser.email, issuer_name='App')
+		uri = pyotp.totp.TOTP(uuser.otp_secret).provisioning_uri(name=uuser.email, issuer_name='fastauth2')
 
 		qr = qrcode.QRCode(box_size=box_size)
 		qr.add_data(uri)
