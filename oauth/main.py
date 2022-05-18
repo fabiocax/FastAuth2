@@ -177,7 +177,7 @@ async def get_otp_qrcode(username: str,current_user: User = Depends(get_current_
 	return StreamingResponse(filtered_image, media_type="image/png")
 
 @oauth.get("/adm/users/otp/id/{username}", response_model=User)
-async def get_otp_qrcode(username: str,token: int,current_user: User = Depends(get_current_active_user)):
+async def get_otp_userid(username: str,token: int,current_user: User = Depends(get_current_active_user)):
 	userd =user_details(current_user.username)
 	token_valid=False
 	if userd.admin == True:
