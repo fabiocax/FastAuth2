@@ -13,9 +13,10 @@ from sqlalchemy.orm import sessionmaker
 from secrets import token_bytes
 from base64 import b64encode
 import pyotp
+from ldap_auth import ldap_test
 
 app = FastAPI()
-
+ldap_auth=ldap_test()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v2/authentication/token")
 try:
@@ -68,18 +69,21 @@ def get_user(db, username: str):
 
 def authenticate_user(fake_db, username: str, password: str,client_secret:str):
     user = get_user(fake_db, username)
-    if not user:
-        return False
-    if not verify_password(password, user.hashed_password):
-        return False
+    if not user.hashed_password=='ldap':
+        if not user:
+            return False
+        
+        if not verify_password(password, user.hashed_password):
+            return False
+
+    else:
+        if ldap_auth.ldap(username,password) == False:
+            return False
+
     if user.otp ==True:
         totp = pyotp.TOTP(user.otp_secret)
         if not client_secret == totp.now():
             return False
-            
-    
-    
-
     return user
 
 

@@ -5,7 +5,7 @@ from fastapi import FastAPI,status,HTTPException,Depends,Response
 from fastapi.responses import StreamingResponse
 from fastapi.security import OAuth2PasswordBearer,OAuth2PasswordRequestForm
 from models import  engine, Users
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, exc
 import random
 import hashlib
 from dependencies import *
@@ -43,9 +43,14 @@ oauth = APIRouter(
 @oauth.post("/authentication/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
 	session = Session()
-	userdb=session.query(Users).filter(Users.username == form_data.username,Users.disabled==False).one()
-	users_db={form_data.username:userdb.as_dict()}
-	user = authenticate_user(users_db, form_data.username, form_data.password,form_data.client_secret)
+	try:
+		userdb=session.query(Users).filter(Users.username == form_data.username,Users.disabled==False).one()
+		users_db={form_data.username:userdb.as_dict()}
+		user = authenticate_user(users_db, form_data.username, form_data.password,form_data.client_secret)
+	except exc.NoResultFound:
+		if ldap_test().ldap(form_data.username,form_data.password)==True:
+			user={'username':form_data.username}
+
 	if not user:
 		raise HTTPException(
 			status_code=status.HTTP_401_UNAUTHORIZED,
@@ -86,13 +91,16 @@ async def get_username_info(username: str,current_user: User = Depends(get_curre
 	return ret
 
 @oauth.post("/adm/users/", response_model=User)
-async def add_users(current_user: User = Depends(get_current_active_user),username: str = Form(...),password: str = Form(...),email: str = Form(...),fullname: str = Form(...),token_timeout: int=15,otp_active: bool=False):
+async def add_users(current_user: User = Depends(get_current_active_user),username: str = Form(...),password: str = Form(None),email: str = Form(...),fullname: str = Form(...),token_timeout: int=15,otp_active: bool=False):
 	userd =user_details(current_user.username)
 	if userd.admin == True:
 		session = Session()
 		usersadd=Users()
 		usersadd.username=username
-		usersadd.hashed_password=get_password_hash(password)
+		if password ==None:
+			usersadd.hashed_password="ldap"
+		else:
+			usersadd.hashed_password=get_password_hash(password)
 		usersadd.email=email
 		usersadd.full_name=fullname
 		usersadd.admin=False
@@ -123,6 +131,7 @@ async def delete_user_info(current_user: User = Depends(get_current_active_user)
 	if userd.admin == True:
 		session = Session()
 		session.query(Users).filter(Users.username == username).delete()
+		session.commit()
 	else:
 		raise HTTPException(
 			status_code=status.HTTP_401_UNAUTHORIZED,
