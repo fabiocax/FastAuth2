@@ -17,16 +17,19 @@ class ldap_test():
 
     def ldap(self,uid,password):
         try:     
-
+            entry=False
+            
             if self.ldap_connection.bind() == True:
-                if self.ldap_connection.search(search_base=ldap_base, search_filter=ldap_filter,search_scope = SUBTREE) == True:
+                if self.ldap_connection.search(search_base=ldap_base, search_filter=ldap_filter.replace('{uid}',uid),search_scope = SUBTREE) == True:
                     uid=((str(self.ldap_connection.entries).split(' ')[1]))
                     
                     try:
+                        
                         ldap_user_connection = Connection(self.ldap_server, user = uid, password=password, auto_bind=True)
                         
                         if ldap_user_connection.bind() == True:
                             entry=True
+                            
                         else:
                             entry=False
                     except LDAPBindError:
@@ -35,7 +38,8 @@ class ldap_test():
                     
                     return entry
                 else:
-                    return None
+                    entry=False
+                    return entry
         except LDAPSocketOpenError:
             print('Unabled to connect to the LDAP server!')
             return None

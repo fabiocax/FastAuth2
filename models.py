@@ -36,12 +36,19 @@ class Users(Base):
     token_timeout = Column(Integer, default=10)
     admin = Column(Boolean, default=False)
     disabled = Column(Boolean, default=False)
+    parms = Column(Text, default='{}')
     otp = Column(Boolean, default=True)
     otp_secret= Column(String)
     def as_dict(self):
        return {c.key: getattr(self, c.key) for c in self.__table__.columns}
 
-
+class Parameters(Base):
+    __tablename__ = "parameters"
+    id = Column(Integer, primary_key=True)
+    parent_id = Column(Integer, ForeignKey("users.id"))
+    key_name = Column(String, unique=True, index=True)
+    value = Column(String, unique=False, index=True)
+    
 #Criando usuario de teste
 
 

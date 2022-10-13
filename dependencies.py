@@ -16,7 +16,7 @@ import pyotp
 from ldap_auth import ldap_test
 
 app = FastAPI()
-ldap_auth=ldap_test()
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v2/authentication/token")
 try:
@@ -41,10 +41,12 @@ class TokenData(BaseModel):
 
 
 class User(BaseModel):
+    user_id: Optional[int]=None
     username: str
     #email: str
     email: Optional[str] = None
     full_name: Optional[str] = None
+    expire: Optional[float] = None
     otp_token: Optional[bool] = None
 
 
@@ -77,6 +79,7 @@ def authenticate_user(fake_db, username: str, password: str,client_secret:str):
             return False
 
     else:
+        ldap_auth=ldap_test()
         if ldap_auth.ldap(username,password) == False:
             return False
 
@@ -114,6 +117,36 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
     return token_data
 
+async def get_expires_token(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        curr_dt = datetime.now()
+        timestamp = int(round(curr_dt.timestamp()))
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        expires: timedelta = payload.get("exp")
+        expire=((expires-timestamp))
+
+        #expire = datetime.utcnow() - expires
+    except JWTError:
+        raise credentials_exception
+    return expire
+
+async def get_parms(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        parms=payload.get("parms")
+    except JWTError:
+        raise credentials_exception
+    return parms
 
 async def get_current_active_user(current_user: User = Depends(get_current_user)):
  

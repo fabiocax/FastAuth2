@@ -4,7 +4,7 @@ from dependencies import *
 from fastapi import FastAPI,status,HTTPException,Depends,Response
 from fastapi.responses import StreamingResponse
 from fastapi.security import OAuth2PasswordBearer,OAuth2PasswordRequestForm
-from models import  engine, Users
+from models import  engine, Users,Parameters
 from sqlalchemy.orm import sessionmaker, exc
 import random
 import hashlib
@@ -47,28 +47,42 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 		userdb=session.query(Users).filter(Users.username == form_data.username,Users.disabled==False).one()
 		users_db={form_data.username:userdb.as_dict()}
 		user = authenticate_user(users_db, form_data.username, form_data.password,form_data.client_secret)
+
+
 	except exc.NoResultFound:
 		if ldap_test().ldap(form_data.username,form_data.password)==True:
 			user={'username':form_data.username}
-
-	if not user:
+	try:
+		if not user:
+			raise HTTPException(
+				status_code=status.HTTP_401_UNAUTHORIZED,
+				detail="Incorrect username or password",
+				headers={"WWW-Authenticate": "Bearer"},
+			)
+	except:
 		raise HTTPException(
-			status_code=status.HTTP_401_UNAUTHORIZED,
-			detail="Incorrect username or password",
-			headers={"WWW-Authenticate": "Bearer"},
-		)
+				status_code=status.HTTP_401_UNAUTHORIZED,
+				detail="Not authorized",
+				headers={"WWW-Authenticate": "Bearer"},
+			)
+
+	user_parms=session.query(Parameters).filter(Parameters.parent_id== userdb.id)
+	dict_parameters={}
+	for line in user_parms:
+		dict_parameters[line.key_name]=line.value
 	access_token_expires = timedelta(minutes=userdb.token_timeout)
+	
+
 	access_token = create_access_token(
-		data={"sub": user.username}, expires_delta=access_token_expires
+		data={"sub": user.username,"parms": dict_parameters}, expires_delta=access_token_expires
 	)
 	return {"access_token": access_token, "token_type": "bearer"}
 
-@oauth.get("/authentication/users/", response_model=User)
-async def get_user_info(current_user: User = Depends(get_current_active_user)):
-	userd =user_details(current_user.username)
-	ret={"username":userd.username,
-		 "email":userd.email,
-		 "full_name":userd.full_name,
+@oauth.get("/authentication/users/")
+async def get_user_info(current_user: User = Depends(get_current_active_user),expires: float = Depends(get_expires_token),parms: dict = Depends(get_parms)):
+	ret={"username":current_user.username,
+		 "token_expire":expires,
+		 "parms": parms
 		 }
 	return ret
 
@@ -78,7 +92,8 @@ async def get_username_info(username: str,current_user: User = Depends(get_curre
 	userd =user_details(current_user.username)
 	if userd.admin == True:
 		uuser=user_details(username)
-		ret={"username":uuser.username,
+		ret={"user_id":uuser.id,
+			"username":uuser.username,
 			"email":uuser.email,
 			"full_name":uuser.full_name,
 			}
@@ -158,6 +173,73 @@ async def disabled_user_info(current_user: User = Depends(get_current_active_use
 	ret={"username":username}
 
 	return ret
+
+@oauth.post("/adm/users/parameters/add/{username_id}")
+async def add_parameters_users(username_id: str,current_user: User = Depends(get_current_active_user),key: str = Form(...),value: str = Form(...)):
+	userd =user_details(current_user.username)
+	if userd.admin == True:
+		session = Session()
+		parms=Parameters()
+		parms.parent_id=username_id
+		parms.key_name=key
+		parms.value=value
+		session.add(parms)
+		try:
+			session.commit()
+		except:
+			raise HTTPException(
+				status_code=status.HTTP_401_UNAUTHORIZED,
+				detail="UNIQUE constraint failed",
+				headers={"WWW-Authenticate": "Bearer"},
+			)
+	else:
+		raise HTTPException(
+			status_code=status.HTTP_401_UNAUTHORIZED,
+			detail="Not authorized",
+			headers={"WWW-Authenticate": "Bearer"},
+		)
+	ret={"username":"true"}
+	return ret
+
+@oauth.get("/adm/users/parameters/list/{username_id}")
+async def get_username_parms_list(username_id: str,current_user: User = Depends(get_current_active_user)):
+	
+	userd =user_details(current_user.username)
+	if userd.admin == True:
+		session = Session()
+		
+		user_parms=session.query(Parameters).filter(Parameters.parent_id== username_id)
+		dict_parameters=[]
+		for line in user_parms:
+			dict_parameters.append(line.__dict__)
+	else:
+		raise HTTPException(
+			status_code=status.HTTP_401_UNAUTHORIZED,
+			detail="Not authorized",
+			headers={"WWW-Authenticate": "Bearer"},
+		)
+	return dict_parameters
+
+@oauth.delete("/adm/users/parameters/list/{key_id}")
+async def get_username_parms_list(key_id: str,current_user: User = Depends(get_current_active_user)):
+	
+	userd =user_details(current_user.username)
+	if userd.admin == True:
+		session = Session()
+		
+		user_parms=session.query(Parameters).filter(Parameters.id== key_id).delete()
+		session.commit()
+
+	else:
+		raise HTTPException(
+			status_code=status.HTTP_401_UNAUTHORIZED,
+			detail="Not authorized",
+			headers={"WWW-Authenticate": "Bearer"},
+		)
+	ret={"key_id":key_id}
+
+	return ret
+
 
 
 @oauth.get("/adm/users/otp/qrcode/{username}", response_model=User)
