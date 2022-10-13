@@ -34,6 +34,7 @@ class Users(Base):
     email = Column(String, unique=False, index=True)
     hashed_password = Column(String)
     token_timeout = Column(Integer, default=10)
+    token_revoque = Column(Boolean, default=False)
     admin = Column(Boolean, default=False)
     disabled = Column(Boolean, default=False)
     parms = Column(Text, default='{}')

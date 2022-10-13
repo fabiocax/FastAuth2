@@ -221,7 +221,7 @@ async def get_username_parms_list(username_id: str,current_user: User = Depends(
 	return dict_parameters
 
 @oauth.delete("/adm/users/parameters/list/{key_id}")
-async def get_username_parms_list(key_id: str,current_user: User = Depends(get_current_active_user)):
+async def delete_username_parms(key_id: str,current_user: User = Depends(get_current_active_user)):
 	
 	userd =user_details(current_user.username)
 	if userd.admin == True:
