@@ -21,9 +21,9 @@ def uuid():
 
 Session = sessionmaker(bind=engine)
 
-
+session = Session()
 def user_details(username):
-	session = Session()
+	
 	try:
 		ret=session.query(Users).filter(Users.username ==username,Users.disabled==False).one()
 	except:
@@ -41,8 +41,8 @@ oauth = APIRouter(
 )
 
 @oauth.post("/authentication/token", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-	session = Session()
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(),token_timeout: int = Form(None)):
+
 	try:
 		userdb=session.query(Users).filter(Users.username == form_data.username,Users.disabled==False).one()
 		users_db={form_data.username:userdb.as_dict()}
@@ -68,9 +68,14 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 	user_parms=session.query(Parameters).filter(Parameters.parent_id== userdb.id)
 	dict_parameters={}
+	if token_timeout == None:
+		ttout= userdb.token_timeout
+	else:
+		ttout=token_timeout
+
 	for line in user_parms:
 		dict_parameters[line.key_name]=line.value
-	access_token_expires = timedelta(minutes=userdb.token_timeout)
+	access_token_expires = timedelta(minutes=ttout)
 	
 
 	access_token = create_access_token(
@@ -80,6 +85,15 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 @oauth.get("/authentication/users/")
 async def get_user_info(current_user: User = Depends(get_current_active_user),expires: float = Depends(get_expires_token),parms: dict = Depends(get_parms)):
+	
+	userdb=session.query(Users).with_entities(Users.disabled, Users.token_revoque).filter(Users.username == current_user.username).one()
+	if (userdb.disabled == True) or (userdb.token_revoque==True):
+		raise HTTPException(
+			status_code=status.HTTP_401_UNAUTHORIZED,
+			detail="Not authorized",
+			headers={"WWW-Authenticate": "Bearer"},
+		)
+	
 	ret={"username":current_user.username,
 		 "token_expire":expires,
 		 "parms": parms
@@ -109,7 +123,7 @@ async def get_username_info(username: str,current_user: User = Depends(get_curre
 async def add_users(current_user: User = Depends(get_current_active_user),username: str = Form(...),password: str = Form(None),email: str = Form(...),fullname: str = Form(...),token_timeout: int=15,otp_active: bool=False):
 	userd =user_details(current_user.username)
 	if userd.admin == True:
-		session = Session()
+
 		usersadd=Users()
 		usersadd.username=username
 		if password ==None:
@@ -144,7 +158,7 @@ async def add_users(current_user: User = Depends(get_current_active_user),userna
 async def delete_user_info(current_user: User = Depends(get_current_active_user),username: str = Form(...)):
 	userd =user_details(current_user.username)
 	if userd.admin == True:
-		session = Session()
+
 		session.query(Users).filter(Users.username == username).delete()
 		session.commit()
 	else:
@@ -161,7 +175,7 @@ async def delete_user_info(current_user: User = Depends(get_current_active_user)
 async def disabled_user_info(current_user: User = Depends(get_current_active_user),username: str = Form(...),disabled: bool = Form(...)):
 	userd =user_details(current_user.username)
 	if userd.admin == True:
-		session = Session()
+
 		session.query(Users).filter(Users.username == username).update({Users.disabled:disabled})
 		session.commit()
 	else:
@@ -178,7 +192,7 @@ async def disabled_user_info(current_user: User = Depends(get_current_active_use
 async def add_parameters_users(username_id: str,current_user: User = Depends(get_current_active_user),key: str = Form(...),value: str = Form(...)):
 	userd =user_details(current_user.username)
 	if userd.admin == True:
-		session = Session()
+
 		parms=Parameters()
 		parms.parent_id=username_id
 		parms.key_name=key
@@ -206,8 +220,6 @@ async def get_username_parms_list(username_id: str,current_user: User = Depends(
 	
 	userd =user_details(current_user.username)
 	if userd.admin == True:
-		session = Session()
-		
 		user_parms=session.query(Parameters).filter(Parameters.parent_id== username_id)
 		dict_parameters=[]
 		for line in user_parms:
@@ -225,8 +237,7 @@ async def delete_username_parms(key_id: str,current_user: User = Depends(get_cur
 	
 	userd =user_details(current_user.username)
 	if userd.admin == True:
-		session = Session()
-		
+	
 		user_parms=session.query(Parameters).filter(Parameters.id== key_id).delete()
 		session.commit()
 
