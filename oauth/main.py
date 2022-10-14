@@ -4,6 +4,7 @@ from dependencies import *
 from fastapi import FastAPI,status,HTTPException,Depends,Response
 from fastapi.responses import StreamingResponse
 from fastapi.security import OAuth2PasswordBearer,OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
 from models import  engine, Users,Parameters
 from sqlalchemy.orm import sessionmaker, exc
 import random
@@ -19,13 +20,17 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v2/authentication/token")
 def uuid():
 	return hashlib.sha1(str(random.random()).encode('utf-8')).hexdigest()
 
-Session = sessionmaker(bind=engine)
 
-session = Session()
+
+def get_db():
+    Session = sessionmaker(bind=engine)
+    return Session()
+
+	
 def user_details(username):
 	
 	try:
-		ret=session.query(Users).filter(Users.username ==username,Users.disabled==False).one()
+		ret=get_db.query(Users).filter(Users.username ==username,Users.disabled==False).one()
 	except:
 		raise HTTPException(
 			status_code=status.HTTP_401_UNAUTHORIZED,
@@ -41,7 +46,7 @@ oauth = APIRouter(
 )
 
 @oauth.post("/authentication/token", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(),token_timeout: int = Form(None)):
+async def login_for_access_token(session: Session = Depends(get_db),form_data: OAuth2PasswordRequestForm = Depends(),token_timeout: int = Form(None)):
 
 	try:
 		userdb=session.query(Users).filter(Users.username == form_data.username,Users.disabled==False).one()
@@ -88,7 +93,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 	return {"access_token": access_token, "token_type": "bearer"}
 
 @oauth.get("/authentication/users/")
-async def get_user_info(current_user: User = Depends(get_current_active_user),expires: float = Depends(get_expires_token),parms: dict = Depends(get_parms)):
+async def get_user_info(session: Session = Depends(get_db),current_user: User = Depends(get_current_active_user),expires: float = Depends(get_expires_token),parms: dict = Depends(get_parms)):
 	
 	userdb=session.query(Users).with_entities(Users.disabled, Users.token_revoque).filter(Users.username == current_user.username).one()
 	if (userdb.disabled == True) or (userdb.token_revoque==True):
@@ -124,7 +129,7 @@ async def get_username_info(username: str,current_user: User = Depends(get_curre
 	return ret
 
 @oauth.post("/adm/users/", response_model=User)
-async def add_users(current_user: User = Depends(get_current_active_user),username: str = Form(...),password: str = Form(None),email: str = Form(...),fullname: str = Form(...),token_timeout: int=15,otp_active: bool=False):
+async def add_users(session: Session = Depends(get_db),current_user: User = Depends(get_current_active_user),username: str = Form(...),password: str = Form(None),email: str = Form(...),fullname: str = Form(...),token_timeout: int=15,otp_active: bool=False):
 	userd =user_details(current_user.username)
 	if userd.admin == True:
 
@@ -159,7 +164,7 @@ async def add_users(current_user: User = Depends(get_current_active_user),userna
 	return ret
 
 @oauth.delete("/adm/users/", response_model=User)
-async def delete_user_info(current_user: User = Depends(get_current_active_user),username: str = Form(...)):
+async def delete_user_info(session: Session = Depends(get_db),current_user: User = Depends(get_current_active_user),username: str = Form(...)):
 	userd =user_details(current_user.username)
 	if userd.admin == True:
 
@@ -176,7 +181,7 @@ async def delete_user_info(current_user: User = Depends(get_current_active_user)
 	return ret
 
 @oauth.put("/adm/users/", response_model=User)
-async def disabled_user_info(current_user: User = Depends(get_current_active_user),username: str = Form(...),disabled: bool = Form(...)):
+async def disabled_user_info(session: Session = Depends(get_db),current_user: User = Depends(get_current_active_user),username: str = Form(...),disabled: bool = Form(...)):
 	userd =user_details(current_user.username)
 	if userd.admin == True:
 
@@ -193,7 +198,7 @@ async def disabled_user_info(current_user: User = Depends(get_current_active_use
 	return ret
 
 @oauth.post("/adm/users/parameters/add/{username_id}")
-async def add_parameters_users(username_id: str,current_user: User = Depends(get_current_active_user),key: str = Form(...),value: str = Form(...)):
+async def add_parameters_users(username_id: str,session: Session = Depends(get_db),current_user: User = Depends(get_current_active_user),key: str = Form(...),value: str = Form(...)):
 	userd =user_details(current_user.username)
 	if userd.admin == True:
 
@@ -220,7 +225,7 @@ async def add_parameters_users(username_id: str,current_user: User = Depends(get
 	return ret
 
 @oauth.get("/adm/users/parameters/list/{username_id}")
-async def get_username_parms_list(username_id: str,current_user: User = Depends(get_current_active_user)):
+async def get_username_parms_list(username_id: str,session: Session = Depends(get_db),current_user: User = Depends(get_current_active_user)):
 	
 	userd =user_details(current_user.username)
 	if userd.admin == True:
@@ -237,7 +242,7 @@ async def get_username_parms_list(username_id: str,current_user: User = Depends(
 	return dict_parameters
 
 @oauth.delete("/adm/users/parameters/list/{key_id}")
-async def delete_username_parms(key_id: str,current_user: User = Depends(get_current_active_user)):
+async def delete_username_parms(key_id: str,session: Session = Depends(get_db),current_user: User = Depends(get_current_active_user)):
 	
 	userd =user_details(current_user.username)
 	if userd.admin == True:
