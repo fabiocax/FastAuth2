@@ -45,6 +45,10 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 	try:
 		userdb=session.query(Users).filter(Users.username == form_data.username,Users.disabled==False).one()
+		if userdb.token_revoque==True:
+			userdb.token_revoque=False
+			session.commit()
+
 		users_db={form_data.username:userdb.as_dict()}
 		user = authenticate_user(users_db, form_data.username, form_data.password,form_data.client_secret)
 
