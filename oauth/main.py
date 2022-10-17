@@ -20,24 +20,10 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v2/authentication/token")
 def uuid():
 	return hashlib.sha1(str(random.random()).encode('utf-8')).hexdigest()
 
-
+Session = sessionmaker(bind=engine)
 
 def get_db():
-    Session = sessionmaker(bind=engine)
     return Session()
-
-	
-def user_details(username):
-	
-	try:
-		ret=get_db.query(Users).filter(Users.username ==username,Users.disabled==False).one()
-	except:
-		raise HTTPException(
-			status_code=status.HTTP_401_UNAUTHORIZED,
-			detail="User disabled",
-			headers={"WWW-Authenticate": "Bearer"},
-		)
-	return ret
 
 oauth = APIRouter(
     prefix="/api/v2",
@@ -46,7 +32,8 @@ oauth = APIRouter(
 )
 
 @oauth.post("/authentication/token", response_model=Token)
-async def login_for_access_token(session: Session = Depends(get_db),form_data: OAuth2PasswordRequestForm = Depends(),token_timeout: int = Form(None)):
+
+async def clients_initial_access(session: Session = Depends(get_db),form_data: OAuth2PasswordRequestForm = Depends(),token_timeout: int = Form(None)):
 
 	try:
 		userdb=session.query(Users).filter(Users.username == form_data.username,Users.disabled==False).one()
@@ -93,7 +80,7 @@ async def login_for_access_token(session: Session = Depends(get_db),form_data: O
 	return {"access_token": access_token, "token_type": "bearer"}
 
 @oauth.get("/authentication/users/")
-async def get_user_info(session: Session = Depends(get_db),current_user: User = Depends(get_current_active_user),expires: float = Depends(get_expires_token),parms: dict = Depends(get_parms)):
+async def clients_info_access(session: Session = Depends(get_db),current_user: User = Depends(get_current_active_user),expires: float = Depends(get_expires_token),parms: dict = Depends(get_parms)):
 	
 	userdb=session.query(Users).with_entities(Users.disabled, Users.token_revoque).filter(Users.username == current_user.username).one()
 	if (userdb.disabled == True) or (userdb.token_revoque==True):
@@ -111,10 +98,10 @@ async def get_user_info(session: Session = Depends(get_db),current_user: User = 
 
 
 @oauth.get("/adm/users/{username}", response_model=User)
-async def get_username_info(username: str,current_user: User = Depends(get_current_active_user)):
-	userd =user_details(current_user.username)
+async def get_clients_info(username: str,current_user: User = Depends(get_current_active_user),session: Session = Depends(get_db)):
+	userd =session.query(Users).filter(Users.username ==current_user.username,Users.disabled==False).one()
 	if userd.admin == True:
-		uuser=user_details(username)
+		uuser=session.query(Users).filter(Users.username ==username,Users.disabled==False).one()
 		ret={"user_id":uuser.id,
 			"username":uuser.username,
 			"email":uuser.email,
@@ -129,8 +116,8 @@ async def get_username_info(username: str,current_user: User = Depends(get_curre
 	return ret
 
 @oauth.post("/adm/users/", response_model=User)
-async def add_users(session: Session = Depends(get_db),current_user: User = Depends(get_current_active_user),username: str = Form(...),password: str = Form(None),email: str = Form(...),fullname: str = Form(...),token_timeout: int=15,otp_active: bool=False):
-	userd =user_details(current_user.username)
+async def add_clients(session: Session = Depends(get_db),current_user: User = Depends(get_current_active_user),username: str = Form(...),password: str = Form(None),email: str = Form(...),fullname: str = Form(...),token_timeout: int=15,otp_active: bool=False):
+	userd =session.query(Users).filter(Users.username ==current_user.username,Users.disabled==False).one()
 	if userd.admin == True:
 
 		usersadd=Users()
@@ -164,8 +151,8 @@ async def add_users(session: Session = Depends(get_db),current_user: User = Depe
 	return ret
 
 @oauth.delete("/adm/users/", response_model=User)
-async def delete_user_info(session: Session = Depends(get_db),current_user: User = Depends(get_current_active_user),username: str = Form(...)):
-	userd =user_details(current_user.username)
+async def delete_clients_info(session: Session = Depends(get_db),current_user: User = Depends(get_current_active_user),username: str = Form(...)):
+	userd =session.query(Users).filter(Users.username ==current_user.username,Users.disabled==False).one()
 	if userd.admin == True:
 
 		session.query(Users).filter(Users.username == username).delete()
@@ -181,8 +168,8 @@ async def delete_user_info(session: Session = Depends(get_db),current_user: User
 	return ret
 
 @oauth.put("/adm/users/", response_model=User)
-async def disabled_user_info(session: Session = Depends(get_db),current_user: User = Depends(get_current_active_user),username: str = Form(...),disabled: bool = Form(...)):
-	userd =user_details(current_user.username)
+async def disabled_clients_info(session: Session = Depends(get_db),current_user: User = Depends(get_current_active_user),username: str = Form(...),disabled: bool = Form(...)):
+	userd =session.query(Users).filter(Users.username ==current_user.username,Users.disabled==False).one()
 	if userd.admin == True:
 
 		session.query(Users).filter(Users.username == username).update({Users.disabled:disabled})
@@ -198,8 +185,8 @@ async def disabled_user_info(session: Session = Depends(get_db),current_user: Us
 	return ret
 
 @oauth.post("/adm/users/parameters/add/{username_id}")
-async def add_parameters_users(username_id: str,session: Session = Depends(get_db),current_user: User = Depends(get_current_active_user),key: str = Form(...),value: str = Form(...)):
-	userd =user_details(current_user.username)
+async def add_parameters_clients_id(username_id: str,session: Session = Depends(get_db),current_user: User = Depends(get_current_active_user),key: str = Form(...),value: str = Form(...)):
+	userd =session.query(Users).filter(Users.username ==current_user.username,Users.disabled==False).one()
 	if userd.admin == True:
 
 		parms=Parameters()
@@ -225,9 +212,9 @@ async def add_parameters_users(username_id: str,session: Session = Depends(get_d
 	return ret
 
 @oauth.get("/adm/users/parameters/list/{username_id}")
-async def get_username_parms_list(username_id: str,session: Session = Depends(get_db),current_user: User = Depends(get_current_active_user)):
+async def get_clients_parms_list(username_id: str,session: Session = Depends(get_db),current_user: User = Depends(get_current_active_user)):
 	
-	userd =user_details(current_user.username)
+	userd =session.query(Users).filter(Users.username ==current_user.username,Users.disabled==False).one()
 	if userd.admin == True:
 		user_parms=session.query(Parameters).filter(Parameters.parent_id== username_id)
 		dict_parameters=[]
@@ -242,9 +229,9 @@ async def get_username_parms_list(username_id: str,session: Session = Depends(ge
 	return dict_parameters
 
 @oauth.delete("/adm/users/parameters/list/{key_id}")
-async def delete_username_parms(key_id: str,session: Session = Depends(get_db),current_user: User = Depends(get_current_active_user)):
+async def delete_clients_parms(key_id: str,session: Session = Depends(get_db),current_user: User = Depends(get_current_active_user)):
 	
-	userd =user_details(current_user.username)
+	userd =session.query(Users).filter(Users.username ==current_user.username,Users.disabled==False).one()
 	if userd.admin == True:
 	
 		user_parms=session.query(Parameters).filter(Parameters.id== key_id).delete()
@@ -263,10 +250,10 @@ async def delete_username_parms(key_id: str,session: Session = Depends(get_db),c
 
 
 @oauth.get("/adm/users/otp/qrcode/{username}", response_model=User)
-async def get_otp_qrcode(username: str,current_user: User = Depends(get_current_active_user),box_size: int=5):
-	userd =user_details(current_user.username)
+async def get_otp_qrcode(username: str,current_user: User = Depends(get_current_active_user),box_size: int=5,session: Session = Depends(get_db)):
+	userd =session.query(Users).filter(Users.username ==current_user.username,Users.disabled==False).one()
 	if userd.admin == True:
-		uuser=user_details(username)
+		uuser=session.query(Users).filter(Users.username ==username,Users.disabled==False).one()
 
 		uri = pyotp.totp.TOTP(uuser.otp_secret).provisioning_uri(name=uuser.email, issuer_name='fastauth2')
 
@@ -288,11 +275,11 @@ async def get_otp_qrcode(username: str,current_user: User = Depends(get_current_
 	return StreamingResponse(filtered_image, media_type="image/png")
 
 @oauth.get("/adm/users/otp/id/{username}", response_model=User)
-async def get_otp_userid(username: str,token: int,current_user: User = Depends(get_current_active_user)):
-	userd =user_details(current_user.username)
+async def get_otp_userid(username: str,token: int,current_user: User = Depends(get_current_active_user),session: Session = Depends(get_db)):
+	userd =session.query(Users).filter(Users.username ==current_user.username,Users.disabled==False).one()
 	token_valid=False
 	if userd.admin == True:
-		uuser=user_details(username)
+		uuser=session.query(Users).filter(Users.username ==username,Users.disabled==False).one()
 		totp = pyotp.TOTP(uuser.otp_secret)
 		if token ==int(totp.now()):
 			token_valid=True
