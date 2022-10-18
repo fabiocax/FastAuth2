@@ -47,8 +47,8 @@ class Parameters(Base):
     __tablename__ = "parameters"
     id = Column(Integer, primary_key=True)
     parent_id = Column(Integer, ForeignKey("users.id"))
-    key_name = Column(String, unique=True, index=True)
-    value = Column(String, unique=False, index=True)
+    key_name = Column(String, unique=False, index=True)
+    value = Column(String, unique=False)
     
 #Criando usuario de teste
 
