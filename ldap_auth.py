@@ -1,14 +1,26 @@
+import logging
 from ldap3 import Server, Connection, ALL, SUBTREE
 from ldap3.core.exceptions import LDAPException, LDAPBindError, LDAPSocketOpenError
 from ldap3.utils.conv import escape_filter_chars
 from os import environ
 
+logging.config.fileConfig('logging.conf')
+logger = logging.getLogger("fastauth")  
 
-ldap_server_uri=environ["ldap_server_uri"]
-ldap_base=environ["ldap_base"]
-ldap_filter=environ["ldap_filter"]
-ldap_user_admin=environ["ldap_user_admin"]
-ldap_user_password=environ["ldap_user_password"]
+
+try:
+    
+    ldap_server_uri=environ["ldap_server_uri"]
+    ldap_base=environ["ldap_base"]
+    ldap_filter=environ["ldap_filter"]
+    ldap_user_admin=environ["ldap_user_admin"]
+    ldap_user_password=environ["ldap_user_password"]
+    logger.info("Start LDAP COnfig")
+except:
+    logger.info("No LDAP Config")
+    pass
+
+
 
 class ldap_test():
     def __init__(self):

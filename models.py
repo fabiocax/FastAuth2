@@ -6,7 +6,10 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func
 from os import environ
 import datetime
+
 from dependencies import *
+SQLALCHEMY_POOL_SIZE=20
+SQLALCHEMY_POOL_TIMEOUT=300
 
 try:
     SQLALCHEMY_DATABASE_URL=environ["API_DATABASE_URL"]

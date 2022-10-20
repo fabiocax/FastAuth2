@@ -1,9 +1,12 @@
 
+import logging
+from urllib.request import Request
 from fastapi import APIRouter, Depends, HTTPException
 from dependencies import *
-from fastapi import FastAPI,status,HTTPException,Depends,Response
+from fastapi import FastAPI,status,HTTPException,Depends,Response, Security,Header,Request
 from fastapi.responses import StreamingResponse
-from fastapi.security import OAuth2PasswordBearer,OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer,OAuth2PasswordRequestForm,APIKeyHeader
+
 from sqlalchemy.orm import Session
 from models import  engine, Users,Parameters
 from sqlalchemy.orm import sessionmaker, exc
@@ -13,9 +16,17 @@ from dependencies import *
 import qrcode 
 from io import BytesIO
 import pyotp
-app = FastAPI()
 
+
+
+
+app = FastAPI()
+API_KEY_NAME = "Bearer"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v2/authentication/token")
+
+api_key_header_auth = APIKeyHeader(name=API_KEY_NAME, auto_error=True)
+async def get_api_key(request: Request):
+	log= get_requests(request)
 
 def uuid():
 	return hashlib.sha1(str(random.random()).encode('utf-8')).hexdigest()
@@ -29,6 +40,7 @@ oauth = APIRouter(
     prefix="/api/v2",
     tags=["auth"],
     responses={404: {"description": "Not found"}},
+	dependencies=[Security(get_api_key)],
 )
 
 @oauth.post("/authentication/token", response_model=Token)
@@ -77,6 +89,7 @@ async def clients_initial_access(session: Session = Depends(get_db),form_data: O
 	access_token = create_access_token(
 		data={"sub": user.username,"parms": dict_parameters}, expires_delta=access_token_expires
 	)
+	logger.info("Create token for"+user.username)
 	return {"access_token": access_token, "token_type": "bearer"}
 
 @oauth.get("/authentication/users/")

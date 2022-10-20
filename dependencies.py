@@ -1,3 +1,4 @@
+import logging
 from fastapi import Header, HTTPException
 
 
@@ -14,6 +15,9 @@ from secrets import token_bytes
 from base64 import b64encode
 import pyotp
 from ldap_auth import ldap_test
+
+
+logger = logging.getLogger("fastauth")  
 
 app = FastAPI()
 
@@ -152,3 +156,12 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
  
     return current_user
 
+def get_requests(req):
+    path=req['path']
+    method=req['method']
+    headers=req['headers']
+    client_host=req['client'][0]
+    client_port=req['client'][1]
+    payload=[client_host,client_port,path,method]
+    logger.info(payload)
+    return payload
