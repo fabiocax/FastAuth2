@@ -157,11 +157,15 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
     return current_user
 
 def get_requests(req):
+    args=[]
     path=req['path']
     method=req['method']
     headers=req['headers']
     client_host=req['client'][0]
     client_port=req['client'][1]
-    payload=[client_host,client_port,path,method]
+    for item in req:
+        args.append(req[item])
+
+    payload=args
     logger.info(payload)
     return payload
