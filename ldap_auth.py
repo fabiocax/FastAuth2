@@ -1,11 +1,11 @@
-import logging
+#import logging
 from ldap3 import Server, Connection, ALL, SUBTREE
 from ldap3.core.exceptions import LDAPException, LDAPBindError, LDAPSocketOpenError
 from ldap3.utils.conv import escape_filter_chars
 from os import environ
 
-logging.config.fileConfig('logging.conf')
-logger = logging.getLogger("fastauth")  
+#logging.config.fileConfig('logging.conf')
+#logger = logging.getLogger("fastauth")  
 
 
 try:
@@ -15,9 +15,9 @@ try:
     ldap_filter=environ["ldap_filter"]
     ldap_user_admin=environ["ldap_user_admin"]
     ldap_user_password=environ["ldap_user_password"]
-    logger.info("Start LDAP COnfig")
+    print("Start LDAP COnfig")
 except:
-    logger.info("No LDAP Config")
+    print("No LDAP Config")
     pass
 
 

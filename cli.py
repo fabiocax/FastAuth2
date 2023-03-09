@@ -7,6 +7,7 @@ from secrets import token_bytes
 from base64 import b64encode
 import pyotp 
 
+
 class Configurator(object):
     """."""
     def createsuperuser(self, username,password,email="",full_name="",otp=False):
